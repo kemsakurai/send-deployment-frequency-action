@@ -13,6 +13,7 @@ runs:
   using: "composite"
   steps:
   - name: Get release info and Post Data
+    shell: bash
     env:
       GITHUB_TOKEN: ${{ inputs.github-token }}
     run: |
