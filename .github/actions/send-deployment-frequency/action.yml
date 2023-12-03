@@ -1,0 +1,71 @@
+name: 'Send realease info'
+description: 'Sends release information to the specified WebHookURL. The purpose is to record the deployment frequency of Four Keys.'
+inputs:
+  web-hook-url:
+    description: 'Web hook URL to which release information will be sent'
+    required: false
+    default: 'https://httpbin.org/post'    
+  github-token:
+    required: false
+    default: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  send-release-info:  
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get release info and Post Data
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        gh api graphql -f id="${{ github.event.release.node_id }}" -f query='
+        query ($id: ID!) {
+        	node(id: $id) {
+          	... on Release {
+            	id
+              author {
+              	login
+              }
+              description
+              isDraft
+              isPrerelease
+              databaseId
+              name
+              repository {
+                name
+              }
+              resourcePath
+              updatedAt
+              publishedAt
+            	createdAt
+              tag {
+                name
+              }
+              tagCommit {
+                additions
+                deletions
+              }
+              tagName
+              url
+            }
+          }
+        }' |
+        jq -r '.data.node |        
+            {
+              id: .id,
+              user: .author.login,
+              description: .description,
+              isDraft: .isDraft,
+              isPrerelease: .isPrerelease,
+              databaseId: .databaseId,
+              name: .name,
+              repositoryName: .repository.name,
+              resourcePath: .resourcePath,
+              publishedAt: .publishedAt,
+              updatedAt: .updatedAt,
+              createdAt: .createdAt,
+              additions: .tagCommit.additions,
+              deletions: .tagCommit.deletions,
+              tagName: .tagName,
+              url: .url              
+            } |
+            @json' |
+        curl '${{ inputs.web-hook-url }}' -X POST -H 'accept: application/json' -H 'Content-Type: application/json' -d @-
