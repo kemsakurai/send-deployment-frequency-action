@@ -1,0 +1,83 @@
+name: Send pull request info
+description: 'Sends pull request infomartion to the specified WebHookURL. The purpose is to record the change lead time of Four Keys.'
+inputs:
+  web-hook-url:
+    description: 'Web hook URL to which pull request information will be sent'
+    required: false
+    default: 'https://httpbin.org/post'
+  github-token:
+    description: 'GitHub token'
+    required: true
+  web-hook-token:
+    description: 'Web hook token'
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: post github info
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: "bash"
+      run: |
+        gh api graphql -f id="${{ github.event.pull_request.node_id }}" -f query='
+          query ($id: ID!) {
+            node(id: $id) {
+              ... on PullRequest {
+                repository {
+                  name
+                }
+                title
+                author {
+                  login
+                }
+                url
+                baseRefName
+                headRefName
+                commits(first: 1) {
+                  nodes {
+                    commit {
+                      authoredDate
+                    }
+                  }
+                }
+                createdAt
+                mergedAt
+                additions
+                deletions
+                reviews(first: 1) {
+                  nodes {
+                    ... on PullRequestReview {
+                      createdAt
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ' |
+        # tokenで認証を行なっている
+        jq -r --arg token ${{ inputs.web-hook-token }} '.data.node |
+          {
+            data: {
+              repository: .repository.name,
+              title: .title,
+              user: .author.login,
+              url: .url,
+              base: .baseRefName,
+              head: .headRefName,
+              firstCommittedAt: .commits.nodes[0].commit.authoredDate,
+              createdAt: .createdAt,
+              firstReviewedAt: .reviews.nodes[0].createdAt,
+              mergedAt: .mergedAt,
+              additions: .additions,
+              deletions: .deletions
+            },
+            type: "lead_time",
+            token: $token
+          } |
+          @json' |
+        curl -L -H "Content-Type: application/json" -d @- {{ inputs.web-hook-url }}
