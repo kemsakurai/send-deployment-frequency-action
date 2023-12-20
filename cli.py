@@ -1,3 +1,5 @@
+import pprint
+
 import click
 import os
 import requests
@@ -10,10 +12,9 @@ def cli():
 
 @cli.command("send_issue_info")
 @click.argument('issue_id')
-@click.option('--label', '-l', default='bug')
-@click.argument('web_hook_url')
 @click.argument('web_hook_token')
-def send_issue_info(issue_id: str, label: str, web_hook_url, web_hook_token):
+@click.option('--label', '-l', default='bug')
+def send_issue_info(issue_id: str, label: str, web_hook_token: str):
     url = "https://api.github.com/graphql"
     token = os.getenv('GITHUB_TOKEN')
     headers = {'Authorization': 'Bearer ' + token}
@@ -48,11 +49,34 @@ def send_issue_info(issue_id: str, label: str, web_hook_url, web_hook_token):
     }
     data = {'query': query,
             'variables': variables}
-    response = requests.post(url, headers=headers, json=data).json()
-    labels = label.split(',')
-    node_labels = map(lambda el: el['name'], response['labels']['nodes'])
-    if not set(labels.isdisjoint(node_labels)):
+    response = requests.post(url, headers=headers, json=data).json()['data']['node']
+    labels = set(label.split(','))
+    node_labels = set(map(lambda el: el['name'], response['labels']['nodes']))
+    if not labels.isdisjoint(node_labels):
         payload = {}
+        payload['web_hook_token'] = web_hook_token
+        payload['author'] = response['author']['login']
+        body = response['body']
+        payload['body'] = body
+        payload['closedAt'] = response['closedAt']
+        payload['createdAt'] = response['createdAt']
+        payload['id'] = response['id']
+        payload['labels'] = ','.join(node_labels)
+        payload['repository'] = response['repository']['name']
+        payload['state'] = response['state']
+        payload['title'] = response['title']
+        payload['updatedAt'] = response['updatedAt']
+        payload['url'] = response['url']
+        # 原因 pullrequest URL
+        payload['pullrequestCausedBug'] = body
+        payload['failureDatetime'] = body
+        payload['failureCompletionDatetime'] = body
+        import json
+        json_str = json.dumps(payload, sort_keys=True, indent=2)
+        f = open('payload.json', 'w')
+        f.write(json_str)
+        f.close()
+
     else:
         print('Since the label to be sent by webhook is not included, the sending process will be skipped.')
 
