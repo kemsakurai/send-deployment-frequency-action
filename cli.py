@@ -3,6 +3,7 @@ import pprint
 import click
 import os
 import requests
+from dateutil import parser
 
 
 @click.group()
@@ -68,9 +69,12 @@ def send_issue_info(issue_id: str, label: str, web_hook_token: str):
         payload['updatedAt'] = response['updatedAt']
         payload['url'] = response['url']
         # 原因 pullrequest URL
-        payload['pullrequestCausedBug'] = body
-        payload['failureDatetime'] = body
-        payload['failureCompletionDatetime'] = body
+        pullrequest_caused_bug = _get_defected_pull_requests_url(body)
+        payload['pullrequestCausedBug'] = pullrequest_caused_bug
+        failure_info = _get_failure_info(body)
+        payload['failureDatetime'] = failure_info.get("failure_datetime")
+        payload['failureCompletionDatetime'] = failure_info.get("failure_completion_datetime")
+        payload['time_to_restore_service'] = failure_info.get("time_to_restore_service")
         import json
         json_str = json.dumps(payload, sort_keys=True, indent=2)
         f = open('payload.json', 'w')
@@ -79,6 +83,35 @@ def send_issue_info(issue_id: str, label: str, web_hook_token: str):
 
     else:
         print('Since the label to be sent by webhook is not included, the sending process will be skipped.')
+
+
+def _get_failure_info(description):
+    failure_datetime = None
+    failure_completion_datetime = None
+    time_to_restore_service = None
+
+    for line in description.splitlines():
+        if '**■ 障害発生日時** >' in line:
+            failure_datetime = parser.parse(line.split('>')[1].strip())
+
+        elif '**■ 障害解消日時**' in line:
+            failure_completion_datetime = parser.parse(line.split('>')[1].strip())
+
+    if failure_datetime is not None and failure_completion_datetime is not None:
+        time_to_restore_service = (failure_completion_datetime - failure_datetime).total_seconds()
+
+    return {
+        'failure_datetime': failure_datetime,
+        'failure_completion_datetime':failure_completion_datetime,
+        'time_to_restore_service': time_to_restore_service
+    }
+
+
+def _get_defected_pull_requests_url(description):
+    for line in description.splitlines():
+        if '■ 不具合混入pull requests URL' in line:
+            return line.split('>')[1].strip()
+    return ''
 
 
 if __name__ == '__main__':
