@@ -31,13 +31,13 @@ runs:
       architecture: 'x64'
   - name: Install dependencies
     shell: bash
-    run: pip install -r requirements.txt
+    run: pip install -r ${{ github.action_path }}/requirements.txt
   - name: Get issue info
     shell: bash
     env:
       GITHUB_TOKEN: ${{ inputs.github-token }}
     run: >
-      python cli.py send_issue_info ${{ github.event.release.node_id }} ${{ inputs.web-hook-token }} 
+      python ${{ github.action_path }}/cli.py send_issue_info ${{ github.event.release.node_id }} ${{ inputs.web-hook-token }} 
       -p ${{ inputs.pullrquest-identification-string }} -fd ${{ inputs.failure-date-identification-string }} 
       -frd ${{ inputs.failure-resolution-date-identification-string }}
   - name: Post issue data
