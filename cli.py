@@ -59,7 +59,7 @@ def send_issue_info(issue_id: str, label: str, web_hook_token: str, pullrquest_i
     node_labels = set(map(lambda el: el['name'], response['labels']['nodes']))
     if not labels.isdisjoint(node_labels):
         payload = {}
-        payload['webHookToken'] = web_hook_token
+        payload['web_hook_token'] = web_hook_token
         payload['author'] = response['author']['login']
         body = response['body']
         payload['body'] = body
@@ -78,8 +78,8 @@ def send_issue_info(issue_id: str, label: str, web_hook_token: str, pullrquest_i
         failure_info = _get_failure_info(body, failure_date_identification_string,
                                          failure_resolution_date_identification_string)
         payload['failureDatetime'] = failure_info.get("failure_datetime")
-        payload['failureResolutionDatetime'] = failure_info.get("failure_resolution_datetime")
-        payload['timeToRestoreService'] = failure_info.get("time_to_restore_service")
+        payload['failureCompletionDatetime'] = failure_info.get("failure_completion_datetime")
+        payload['time_to_restore_service'] = failure_info.get("time_to_restore_service")
         import json
         json_str = json.dumps(payload, sort_keys=True, indent=2, default=_json_serial)
         f = open('payload.json', 'w')
@@ -92,7 +92,7 @@ def send_issue_info(issue_id: str, label: str, web_hook_token: str, pullrquest_i
 
 def _get_failure_info(description, failure_date_identification_string, failure_resolution_date_identification_string):
     failure_datetime = None
-    failure_resolution_datetime = None
+    failure_completion_datetime = None
     time_to_restore_service = None
 
     for line in description.splitlines():
@@ -100,15 +100,15 @@ def _get_failure_info(description, failure_date_identification_string, failure_r
             failure_datetime = parser.parse(line.split(failure_date_identification_string)[1].strip())
 
         elif failure_resolution_date_identification_string in line:
-            failure_resolution_datetime = \
+            failure_completion_datetime = \
                 parser.parse(line.split(failure_resolution_date_identification_string)[1].strip())
 
-    if failure_datetime is not None and failure_resolution_datetime is not None:
-        time_to_restore_service = (failure_resolution_datetime - failure_datetime).total_seconds()
+    if failure_datetime is not None and failure_completion_datetime is not None:
+        time_to_restore_service = (failure_completion_datetime - failure_datetime).total_seconds()
 
     return {
         'failure_datetime': failure_datetime,
-        'failure_resolution_datetime': failure_resolution_datetime,
+        'failure_completion_datetime': failure_completion_datetime,
         'time_to_restore_service': time_to_restore_service
     }
 
