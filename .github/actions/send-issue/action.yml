@@ -1,0 +1,42 @@
+name: 'Send issue info'
+description: 'A GitHub Action that retrieves the stability metrics of four keys from the issue information and sends them to the specified WebhookURL.'
+inputs:
+  web-hook-url:
+    description: 'Web hook URL to which issue information will be sent'
+    required: false
+    default: 'https://httpbin.org/post'
+  web-hook-token:
+    description: 'Web hook token'
+    default: ''
+  pullrquest-identification-string:
+    description: 'String to identify the pull request url that caused the failure'
+    default: '**■ 不具合混入pull requests URL** >'
+  failure-date-identification-string:
+    description: 'String to identify the date and time of the failure'
+    default: '**■ 障害発生日時** >'
+  failure-resolution-date-identification-string:
+    description: 'String to identify the date and time of failure resolution'
+    default: '**■ 障害解消日時** >'
+runs:
+  using: "composite"
+  steps:
+  - uses: actions/checkout@v2
+  - name: Setup Python
+    uses: actions/setup-python@v2
+    with:
+      python-version: '3.10'
+      architecture: 'x64'
+  - name: Install dependencies
+    run: pip install -r requirements.txt
+  - name: Get issue info
+    shell: bash
+    run: >
+      export GITHUB_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      python cli.py send_issue_info ${{ github.event.release.node_id }} ${{ inputs.web-hook-token }} 
+      -p ${{ inputs.pullrquest-identification-string }} -fd ${{ inputs.failure-date-identification-string }} 
+      -frd ${{ inputs.failure-resolution-date-identification-string }}
+  - name: Post issue data
+    shell: bash
+    run: |
+      cat payload.json | 
+      curl '${{ inputs.web-hook-url }}' -X POST -H 'accept: application/json' -H 'Content-Type: application/json' -d @-
