@@ -31,7 +31,7 @@ runs:
   - name: Get issue info
     shell: bash
     run: >
-      export GITHUB_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
       python cli.py send_issue_info ${{ github.event.release.node_id }} ${{ inputs.web-hook-token }} 
       -p ${{ inputs.pullrquest-identification-string }} -fd ${{ inputs.failure-date-identification-string }} 
       -frd ${{ inputs.failure-resolution-date-identification-string }}
