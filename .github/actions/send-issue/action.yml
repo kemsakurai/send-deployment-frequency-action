@@ -1,6 +1,9 @@
 name: 'Send issue info'
 description: 'A GitHub Action that retrieves the stability metrics of four keys from the issue information and sends them to the specified WebhookURL.'
 inputs:
+  github-token:
+    description: 'GitHub token'
+    required: true
   web-hook-url:
     description: 'Web hook URL to which issue information will be sent'
     required: false
@@ -30,8 +33,9 @@ runs:
     run: pip install -r requirements.txt
   - name: Get issue info
     shell: bash
+    env:
+      GITHUB_TOKEN: ${{ inputs.github-token }}
     run: >
-      export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
       python cli.py send_issue_info ${{ github.event.release.node_id }} ${{ inputs.web-hook-token }} 
       -p ${{ inputs.pullrquest-identification-string }} -fd ${{ inputs.failure-date-identification-string }} 
       -frd ${{ inputs.failure-resolution-date-identification-string }}
