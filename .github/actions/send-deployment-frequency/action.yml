@@ -1,4 +1,4 @@
-name: 'Send realease info'
+name: 'Send release info'
 description: 'Sends release information to the specified WebHookURL. The purpose is to record the deployment frequency of Four Keys.'
 inputs:
   web-hook-url:
@@ -8,6 +8,9 @@ inputs:
   github-token:
     description: 'GitHub token'
     required: true
+  web-hook-token:
+    description: 'Web hook token'
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -48,7 +51,7 @@ runs:
           }
         }
       }' |
-      jq -r '.data.node |        
+      jq -r --arg token ${{ inputs.web-hook-token }} '.data.node |        
           {
             id: .id,
             user: .author.login,
@@ -65,7 +68,9 @@ runs:
             additions: .tagCommit.additions,
             deletions: .tagCommit.deletions,
             tagName: .tagName,
-            url: .url              
+            url: .url,
+            type: "deployment",
+            webHookToken: $token
           } |
           @json' |
       curl '${{ inputs.web-hook-url }}' -X POST -H 'accept: application/json' -H 'Content-Type: application/json' -d @-

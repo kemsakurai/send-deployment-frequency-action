@@ -62,22 +62,20 @@ runs:
         # tokenで認証を行なっている
         jq -r --arg token ${{ inputs.web-hook-token }} '.data.node |
           {
-            data: {
-              repository: .repository.name,
-              title: .title,
-              user: .author.login,
-              url: .url,
-              base: .baseRefName,
-              head: .headRefName,
-              firstCommittedAt: .commits.nodes[0].commit.authoredDate,
-              createdAt: .createdAt,
-              firstReviewedAt: .reviews.nodes[0].createdAt,
-              mergedAt: .mergedAt,
-              additions: .additions,
-              deletions: .deletions
-            },
-            type: "lead_time",
-            token: $token
+            repository: .repository.name,
+            title: .title,
+            user: .author.login,
+            url: .url,
+            base: .baseRefName,
+            head: .headRefName,
+            firstCommittedAt: .commits.nodes[0].commit.authoredDate,
+            createdAt: .createdAt,
+            firstReviewedAt: .reviews.nodes[0].createdAt,
+            mergedAt: .mergedAt,
+            additions: .additions,
+            deletions: .deletions
+            type: "pull_request",
+            webHookToken: $token
           } |
           @json' |
         curl -L -H "Content-Type: application/json" -d @- {{ inputs.web-hook-url }}
