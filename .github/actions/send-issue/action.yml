@@ -10,7 +10,7 @@ inputs:
     default: 'https://httpbin.org/post'
   web-hook-token:
     description: 'Web hook token'
-    default: ''
+    default: 'set-your-token'
   pullrquest-identification-string:
     description: 'String to identify the pull request url that caused the failure'
     default: '**■ 不具合混入pull requests URL** >'
