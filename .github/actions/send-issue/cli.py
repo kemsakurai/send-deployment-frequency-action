@@ -18,7 +18,7 @@ def cli():
 @click.option('--pullrquest_identification_string', '-p', default='**■ 不具合混入pull requests URL** >')
 @click.option('--failure_date_identification_string', '-fd', default='**■ 障害発生日時** >')
 @click.option('--failure_resolution_date_identification_string', '-frd', default='**■ 障害解消日時** >')
-def send_issue_info(issue_id: str, label: str, web_hook_token: str, pullrquest_identification_string: str,
+def send_issue_info(issue_id: str, web_hook_token: str, label: str, pullrquest_identification_string: str,
                     failure_date_identification_string: str, failure_resolution_date_identification_string: str):
     url = "https://api.github.com/graphql"
     token = os.getenv('GITHUB_TOKEN')
