@@ -14,7 +14,6 @@ def cli():
 @cli.command("send_issue_info")
 @click.argument('issue_id')
 @click.argument('web_hook_token')
-@click.option('--label', '-l', default='bug')
 @click.option('--pullrquest_identification_string', '-p', default='**■ 不具合混入pull requests URL** >')
 @click.option('--failure_date_identification_string', '-fd', default='**■ 障害発生日時** >')
 @click.option('--failure_resolution_date_identification_string', '-frd', default='**■ 障害解消日時** >')
@@ -55,39 +54,34 @@ def send_issue_info(issue_id: str, web_hook_token: str, label: str, pullrquest_i
     data = {'query': query,
             'variables': variables}
     response = requests.post(url, headers=headers, json=data).json()['data']['node']
-    labels = set(label.split(','))
     node_labels = set(map(lambda el: el['name'], response['labels']['nodes']))
-    if not labels.isdisjoint(node_labels):
-        payload = {}
-        payload['web_hook_token'] = web_hook_token
-        payload['author'] = response['author']['login']
-        body = response['body']
-        payload['body'] = body
-        payload['closedAt'] = response['closedAt']
-        payload['createdAt'] = response['createdAt']
-        payload['id'] = response['id']
-        payload['labels'] = ','.join(node_labels)
-        payload['repository'] = response['repository']['name']
-        payload['state'] = response['state']
-        payload['title'] = response['title']
-        payload['updatedAt'] = response['updatedAt']
-        payload['url'] = response['url']
-        # 原因 pullrequest URL
-        pullrequest_caused_bug = _get_defected_pull_requests_url(body, pullrquest_identification_string)
-        payload['pullrequestCausedBug'] = pullrequest_caused_bug
-        failure_info = _get_failure_info(body, failure_date_identification_string,
-                                         failure_resolution_date_identification_string)
-        payload['failureDatetime'] = failure_info.get("failure_datetime")
-        payload['failureCompletionDatetime'] = failure_info.get("failure_completion_datetime")
-        payload['time_to_restore_service'] = failure_info.get("time_to_restore_service")
-        import json
-        json_str = json.dumps(payload, sort_keys=True, indent=2, default=_json_serial)
-        f = open('payload.json', 'w')
-        f.write(json_str)
-        f.close()
-
-    else:
-        print('Since the label to be sent by webhook is not included, the sending process will be skipped.')
+    payload = {}
+    payload['web_hook_token'] = web_hook_token
+    payload['author'] = response['author']['login']
+    body = response['body']
+    payload['body'] = body
+    payload['closedAt'] = response['closedAt']
+    payload['createdAt'] = response['createdAt']
+    payload['id'] = response['id']
+    payload['labels'] = ','.join(node_labels)
+    payload['repository'] = response['repository']['name']
+    payload['state'] = response['state']
+    payload['title'] = response['title']
+    payload['updatedAt'] = response['updatedAt']
+    payload['url'] = response['url']
+    # 原因 pullrequest URL
+    pullrequest_caused_bug = _get_defected_pull_requests_url(body, pullrquest_identification_string)
+    payload['pullrequestCausedBug'] = pullrequest_caused_bug
+    failure_info = _get_failure_info(body, failure_date_identification_string,
+                                     failure_resolution_date_identification_string)
+    payload['failureDatetime'] = failure_info.get("failure_datetime")
+    payload['failureCompletionDatetime'] = failure_info.get("failure_completion_datetime")
+    payload['time_to_restore_service'] = failure_info.get("time_to_restore_service")
+    import json
+    json_str = json.dumps(payload, sort_keys=True, indent=2, default=_json_serial)
+    f = open('payload.json', 'w')
+    f.write(json_str)
+    f.close()
 
 
 def _get_failure_info(description, failure_date_identification_string, failure_resolution_date_identification_string):
