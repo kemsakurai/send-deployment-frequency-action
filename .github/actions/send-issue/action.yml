@@ -43,5 +43,5 @@ runs:
   - name: Post issue data
     shell: bash
     run: |
-      cat payload.json | 
+      cat ${{ github.action_path }}/payload.json | 
       curl '${{ inputs.web-hook-url }}' -X POST -H 'accept: application/json' -H 'Content-Type: application/json' -d @-
